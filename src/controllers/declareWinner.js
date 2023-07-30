@@ -6,43 +6,43 @@ const depositTransactionCollection = db.collection('depositTransaction');
 const userCollection = db.collection('userData');
 const positionCollection = db.collection('positions');
 const gameCollection = db.collection('games');
+const staticCollection = db.collection('static');
 
-let gameId = { value: 0 };
+
 const values = [1, 2, 3, 4];
 
 async function checkTime() {
   try {
     console.log('...');
-    const game = await gameCollection.findOne({ gameId: gameId.value });
+    let gameId = await staticCollection.findOne();
+    if (!gameId) {
+      staticCollection.updateOne({}, { $set: { gameId: 1 } }, { upsert: true });
+      gameId = 1;
+    }else gameId = gameId.gameId;
+    const game = await gameCollection.findOne({ gameId: gameId });
     const currentTime = new Date().getTime();
 
     // if nothing exists then create
     if (!game) {
-      await gameCollection.insertOne({
-        gameId: gameId.value,
-        startTime: currentTime + 1000 * 60 * 60,
-        winnerAnnouncementTime: currentTime + 1000 * 60 * 60 * 2,
-        announcedWinner: getRandomNumberFromSet(),
-        totalAmount: 0,
-      });
       return;
     }
 
-    if (currentTime > game.winnerAnnouncementTime) {
-      console.log('announce winner');
-      manageTransactions(game.announcedWinner, game.totalAmount * 0.9, gameId.value);
+    if (game.winnerAnnouncementTime > 0 && game.announcedWinner > 0 && currentTime > game.winnerAnnouncementTime) {
+      console.log('announced winner is: ' + game.announcedWinner);
+      manageTransactions(game.announcedWinner, game.totalAmount * 0.9, gameId);
 
       // create new document for game and position
-      gameId.value++;
+      gameId++;
+      staticCollection.updateOne({}, { $set: { gameId } }, { upsert: true });
       const gameSchema = {
-        gameId: gameId.value,
+        gameId: gameId,
         startTime: currentTime + 1000 * 60 * 60,
         winnerAnnouncementTime: currentTime + 1000 * 60 * 60 * 2,
-        announcedWinner: getRandomNumberFromSet(),
+        announcedWinner: 0,
         totalAmount: 0,
       };
       const positionSchema = {
-        gameId: gameId.value,
+        gameId: gameId,
         position: 0,
         participants: [],
         totalAmount: 0,
@@ -123,10 +123,4 @@ async function manageTransactions(winPosition, poolSize, gameId) {
   }
 }
 
-function getRandomNumberFromSet() {
-  const randomIndex = Math.floor(Math.random() * values.length);
-  const randomNumber = values[randomIndex];
-  return randomNumber;
-}
-
-module.exports = { checkTime, gameId };
+module.exports = { checkTime };

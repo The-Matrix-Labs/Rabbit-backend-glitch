@@ -11,6 +11,7 @@ const depositTransactionCollection = db.collection('depositTransaction');
 const userCollection = db.collection('userData');
 const positionCollection = db.collection('positions');
 const gameCollection = db.collection('games');
+const staticCollection = db.collection('static');
 
 app.use(verify);
 
@@ -59,7 +60,13 @@ app.post('/deposit', async (req, res) => {
 
 app.post('/place-bet', async (req, res) => {
   try {
-    const { position, user, amount, gameId } = req.body;
+    let gameId = await staticCollection.findOne();
+    if (!gameId) {
+      staticCollection.updateOne({}, { $set: { gameId: 1 } }, { upsert: true });
+      gameId = 1;
+    }else gameId = gameId.gameId;
+
+    const { position, user, amount } = req.body;
     if (amount <= 0) {
       return res.status(400).send({ error: 'Amount must be greater than 0' });
     }
@@ -128,6 +135,17 @@ app.post('/place-bet', async (req, res) => {
       }
     );
 
+    await staticCollection.updateOne({}, {
+      $push: {
+         txnHistory: {
+          amount,
+          type: 'bet',
+          position,
+          gameId,
+        },
+      }
+    }, { upsert: true });
+
     const updatedUser = await userCollection.findOne({ _id: ObjectId(user._id) });
     const updatedPosition = await positionCollection.findOne({ gameId, position });
 
@@ -137,5 +155,82 @@ app.post('/place-bet', async (req, res) => {
     return res.status(500).send({ error: 'Internal Server Error' });
   }
 });
+
+// Only Admin routes here --------------------------------------------------------
+
+app.post ('/addGameDetails', async (req, res) => {
+  try{
+
+    // only Admins can update the game details
+    const admins = (process.env.WHITELISTED_ADDRESSES || '').split(' ');
+    if (!admins.includes(req.body.user.address)) {
+      return res.status(401).send({ error: 'Unauthorized' });
+    }
+
+    // set details
+    const {gameId, startTime, endTime} = req.body;
+    const gameDetails = await gameCollection.findOne({gameId});
+    if(gameDetails){
+      return res.status(400).send({error: 'Game already exists'});
+    }
+    await gameCollection.insertOne({gameId, startTime, endTime, totalAmount: 0});
+    res.status(200).send({message: 'Game details added'});
+  } catch(error){
+    console.error('Error adding game details:', error);
+    return res.status(500).send({error: 'Internal Server Error'});
+  }
+})
+
+app.post ('/updateGameDetails', async (req, res) => {
+  try {
+
+    // only Admins can update the game details
+    const admins = (process.env.WHITELISTED_ADDRESSES || '').split(' ');
+    if (!admins.includes(req.body.user.address)) {
+      return res.status(401).send({ error: 'Unauthorized' });
+    }
+
+    const {gameId, startTime, endTime} = req.body;
+    const gameDetails = await gameCollection.findOne({gameId});
+
+    // if the data not sent then use the existing data
+    if(gameDetails){
+      if (!startTime) startTime = gameDetails.startTime;
+      if (!endTime) endTime = gameDetails.endTime;
+    }
+
+    await gameCollection.updateOne({gameId}, {$set: {startTime, endTime}}, { upsert: true });
+    res.status(200).send({message: 'Game details updated'});
+  } catch(error){
+    console.error('Error updating game details:', error);
+    return res.status(500).send({error: 'Internal Server Error'});
+  }
+})
+
+app.post ('/setResults', async (req, res) => {
+  try {
+
+    // only Admins can update the game details
+    const admins = (process.env.WHITELISTED_ADDRESSES || '').split(' ');
+    if (!admins.includes(req.body.user.address)) {
+      return res.status(401).send({ error: 'Unauthorized' });
+    }
+
+    const {gameId, announcedWinner} = req.body;
+    const gameDetails = await gameCollection.findOne({gameId});
+
+    // if the data not sent then use the existing data
+    if(gameDetails){
+      if (!announcedWinner) announcedWinner = gameDetails.announcedWinner;
+    }
+
+    await gameCollection.updateOne({gameId}, {$set: {announcedWinner}}, { upsert: true });
+    res.status(200).send({message: 'Game details updated'});
+  } catch(error){
+    console.error('Error updating game details:', error);
+    return res.status(500).send({error: 'Internal Server Error'});
+  }
+})
+
 
 module.exports = app;
