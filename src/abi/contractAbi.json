@@ -1,0 +1,36 @@
+[
+  { "inputs": [], "stateMutability": "nonpayable", "type": "constructor" },
+  {
+    "anonymous": false,
+    "inputs": [
+      { "indexed": true, "internalType": "address", "name": "previousOwner", "type": "address" },
+      { "indexed": true, "internalType": "address", "name": "newOwner", "type": "address" }
+    ],
+    "name": "OwnershipTransferred",
+    "type": "event"
+  },
+  {
+    "inputs": [
+      { "internalType": "string", "name": "name_", "type": "string" },
+      { "internalType": "string", "name": "symbol_", "type": "string" },
+      { "internalType": "uint8", "name": "decimals_", "type": "uint8" },
+      { "internalType": "uint256", "name": "totalSupply_", "type": "uint256" },
+      { "internalType": "uint256", "name": "buyMarketingFee_", "type": "uint256" },
+      { "internalType": "uint256", "name": "buyLiquidityFee_", "type": "uint256" },
+      { "internalType": "uint256", "name": "sellMarketingFee_", "type": "uint256" },
+      { "internalType": "uint256", "name": "sellLiquidityFee_", "type": "uint256" },
+      { "internalType": "uint256", "name": "transferMarketingFee_", "type": "uint256" },
+      { "internalType": "uint256", "name": "transferLiquidityFee_", "type": "uint256" },
+      { "internalType": "address", "name": "marketingWallet_", "type": "address" }
+    ],
+    "name": "createContract",
+    "outputs": [{ "internalType": "address", "name": "", "type": "address" }],
+    "stateMutability": "payable",
+    "type": "function"
+  },
+  { "inputs": [], "name": "owner", "outputs": [{ "internalType": "address", "name": "", "type": "address" }], "stateMutability": "view", "type": "function" },
+  { "inputs": [], "name": "renounceOwnership", "outputs": [], "stateMutability": "nonpayable", "type": "function" },
+  { "inputs": [{ "internalType": "uint256", "name": "fee_", "type": "uint256" }], "name": "setContractCreationFee", "outputs": [], "stateMutability": "nonpayable", "type": "function" },
+  { "inputs": [{ "internalType": "address", "name": "newOwner", "type": "address" }], "name": "transferOwnership", "outputs": [], "stateMutability": "nonpayable", "type": "function" },
+  { "inputs": [], "name": "withdrawEth", "outputs": [{ "internalType": "bool", "name": "", "type": "bool" }], "stateMutability": "nonpayable", "type": "function" }
+]
